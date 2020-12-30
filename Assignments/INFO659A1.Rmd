@@ -1,0 +1,199 @@
+---
+title: "House price Prediction in Mumbai,India"
+output: html_notebook
+---
+**Tasks and Steps:**
+
+**1. Think Business: Framing The Business Problem**
+
+**1.1. Real Estate Problem Background:**
+
+    Finding the prices of the houses in an area is difficult to an individual as this prices vary from place to place, because they are depends on various factors. Due to this, the real estate business dealers are cheating on people by misguiding them to sell there house for low price or they misguide people to buy house for high price than market value.
+
+**1.2. Business problem:**
+
+    Creating an model which can helps us to predicts the best competitive price value for an given house in Mumbai region with considering various factors like location of the house, area sq feet, number of bedrooms and many other attributes. The dataset which we are going to deal is related to Mumbai real estate business.
+    
+**1.3. Objectives:**
+
+    Finding the fair market price of the house/property for both buyers as well as sellers using a linear regression model that has the capacity to predict with high accuracy.
+    
+
+**2. Understand Data: Data source identification and understanding:**
+
+The data source used here is Mumbai housing prices data set from Kaggle. Please find the attached document with this File.
+
+Below is the link of Kaggle data source,
+
+https://www.kaggle.com/sameep98/housing-prices-in-mumbai
+
+**2.1. Concept of learning:**
+    
+    Building an ML linear regression model by training the target attribute Price with most correlated predictors from Mumbai housing price data set so that it can learn underlying patterns/relations between predictors and class attributes in such a way that this analytic model will have ability to predict the Price of house for any given location in Mumbai region.
+     
+**2.2. Data attributes:**
+
+    Our dataset contains total 19 attributes/features that are describing the data
+    
+    1.S.No                 : Unique indexes to data instances in the dataset and datatype of this attribute is integer(int)
+    2.Price                : Cost of the house in Rupees and datatype of this attribute is integer(int)
+    3.Area                 : Size of the total property in sq.ft and datatype of this attribute is integer(int)
+    4.Location             : Place where this house located in Mumbai region (Area name) and datatype of this attribute is categorical as data has only finite values
+    5.No. of Bedrooms      : This attribute contains the information of how many bedrooms a house contains and datatype of this attribute is integer(int)
+    6.New/Resale           : 0 Represents New house and 1 represents house for Resale and datatype of this attribute is categorical as data has only finite values.
+    7.Gymnasium            : The value of this attribute will be 1 if Gym is available in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1).
+    8.Lift Available       : The value of this attribute will be 1 if Lift is available in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1).
+    9.Car Parking          : The value of this attribute will be 1 if car parking is available in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1).
+    10.Maintenance Staff   : The value of this attribute will be 1 if Maintenance stuff is available in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1).
+    11.24x7 Security       : The value of this attribute will be 1 if there exists a 24x7 security in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1). 
+    12.Childrens Play Area : The value of this attribute will be 1 if Children play area is available in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1).
+    13.Clubhouse           : The value of this attribute will be 1 if there exists a place for club activities in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1).
+    14.Intercom            : The value of this attribute will be 1 if Intercom services are available in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1).
+    15.Landscaped Gardens  : The value of this attribute will be 1 if Gardens place is present in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1).
+    16.Indoor Games        : The value of this attribute will be 1 if Indoor Games are available in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1).
+    17.Gas Connection      : The value of this attribute will be 1 if Gas connection facility is available in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1).
+    18.Jogging Track       : The value of this attribute will be 1 if Jogging track is present in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1).
+    19.Swimming Pool       : The value of this attribute will be 1 if Swimming Pool is available in that house otherwise the value is 0 and datatype of this attribute is categorical as data has only finite values(0 or 1).
+
+    
+
+```{r}
+str(Housing_data) #Data attributes and there data types
+```
+
+```{r}
+Copy_Housing_data <- data.frame(Housing_data)
+df = subset(Copy_Housing_data, select = -c(S.NO,Location) ) #Droping chr attribute Location and S.NO
+for (preditor in names(df)){
+    print(cor(Housing_data$Price, Housing_data[preditor],method = "spearman"))
+}
+```
+
+  We can observe from the above correlation that No.of Bedrooms and Area features are more positively related to our target attribute(Price). This two features, No. of Bedrooms and Area has higher impact of predicting the target feature price which are more potentially relevant to build our model.
+    
+**2.3. Data instances:**
+
+Below R code will display the dimensions of the data frame i.e. number of rows and columns in the data set.
+
+```{r}
+dim(Housing_data)
+```
+
+    There are total 6347 data instances present in our dataset. The five sample of data instances are shown below.
+    
+```{r}
+head(Housing_data,5)
+```
+
+
+**3. Data in Action: Data preparation, visualization and exploration**
+
+**3.A. Data preparation and loading:**
+
+Loaded our CSV formated data set into a data frame named Housing_data by using read.csv function in R.
+
+```{r}
+Housing_data <- read.csv("Mumbai1.csv", header=TRUE, sep=",")
+```
+
+```{r}
+head(Housing_data, 5)
+```
+
+The summary of given data frame is shown as below,
+```{r}
+summary(Housing_data)
+```
+
+Displaying the header names of data frame is shown as below,
+
+```{r}
+names(Housing_data)
+```
+
+
+**3.B. Data distribution and anomalies:**
+
+Histogram for Price attribute is shown as below,
+
+```{r}
+hist(Housing_data$Price, breaks=20, xlab="Price", main="PRICE") 
+```
+
+As per above visual representation, the range of this histogram for price attribute is not very clear as the values of this attribute lies in the range of 2000000 to 420000000 which are exponentially higher values to graphically view, so its difficult to understand the range of values divided into bins and the tuning of the breaks parameter of this histogram also did not worked. To overcome this problem we can apply log transformation on price attribute to make the range more reasonable.
+
+Histogram distribution does not looks like normal bell curve. It looks like positively skewed distribution and there are no sudden spikes in this distribution. There is no need of any cleansing data as our data don't have any anomalies
+
+
+
+Histogram for No. of Bedrooms attribute is shown in below,
+
+```{r}
+hist(Housing_data$No..of.Bedrooms, breaks=5, xlab="Number of Bedrooms", main="Number of Bedrooms")
+```
+
+As per above visual representation, Range of this histogram for Number of Bedrooms attribute looks good, the data that we have in No. of Bedrooms attribute is categorical values(1-7) and each bin range is divided into one of this categorical values.
+
+Histogram distribution does not looks like normal bell curve. It looks like positively skewed distribution and there are no sudden spikes in this distribution. There is no need of any cleansing data as our data don't have any anomalies.
+
+Histogram for Area attribute is shown as below,
+
+```{r}
+hist(Housing_data$Area, breaks=8, xlab="Area in Square feet", main="Housing Area in Sq.ft")
+```
+
+As per above visual representation, Range of this histogram for Area attribute looks good as the data that we have in Area attribute ranges from 0-8000 and each bin range is divided into 1000 sq.ft.
+
+Histogram distribution does not looks normal bell curve. It looks like positively skewed distribution and there is no sudden spikes in this distribution.There is no need of any cleansing data as our data don't have any anomalies
+
+**3.C. Data distribution with log transformation:**
+
+As the Price histogram is the most skewed distribution, the log transformation is applied on price attribute to reduce the skewness in the data distribution
+
+```{r}
+hist(log10(Housing_data$Price), breaks=8, xlab="Price", main="PRICE")
+```
+
+Skewness is an asymmetry distortion in an normal/bell shape. From above price attribute histograms, we can observe that there is a high skewness exist before applying log transformation to the price and reduced after, now it looks like an normal/bell shape distribution but slightly skewed to right.
+
+**3.D. Examining multiple variables and regression:**
+
+scatter plot between Area(predictor) and Price(target) variables are shown as below,
+
+```{r}
+plot(Housing_data$Area, Housing_data$Price, xlab="Area in square feet", ylab="Price")
+myline <- lm(Housing_data$Price ~ Housing_data$Area)
+points(Housing_data$Area, myline$coefficients[1] + myline$coefficients[2] * Housing_data$Area, type="l", col="red")
+```
+
+In general the equation of the line is given as Y= mX+c. Using this line equation we can draw the line to our scatter plot where Y represents the Dependent Variable(Price) and X represents Independent Variable(Area). 
+
+    Price= m*Area+c
+
+where m represents the slope of the line and finding the best value of slope will reduce the mean square error.
+
+Linear regression lm() will best fit the line between the attribute Area(predictor) and target attribute Price with least mean square error which makes model accurate.
+
+As shown in the above, the scatter plot of Price and Area variables with red colored regression line represents the relationship between this two variables. This line is best fitted to the data points by linear regression model. There is an linear relation between two attributes as price of the house increases linearly with area in square feet of the house increases. 
+
+
+**4. Discussion, understanding, and planning:**
+
+The linear regression model that was trained has learnt the underlying patterns from the data to predict the prices of the house in Mumbai city more accurately. So applying this model on data can resolve my business problem and objectives with good accuracy.To obtain high efficient model more predictors should be trained in the model.
+
+Quality of data is good as there is no missing or NAN values or anomalies in the data. Data lies within their normal ranges and the data don’t need any type of cleansing or correction.
+
+Yes, log transformation is needed for some numeric variables as they have high skewness in the histogram distribution. The log transformation is applied on price attribute to reduce the skewness in the data distribution.
+
+Yes, There is an linear relation between Class(Price) and predictor attributes therefore a linear regression is suitable for this data modeling.
+
+The available data instances(6347) are sufficient enough for the actual modeling but to make our model more efficient more predictors should be trained.
+
+Yes, the model performance and accuracy will increase by considering the additional data i.e. Number of bedrooms variable along the Area variable can be used to predict the Price variable for this project.
+
+By exploratory data analysis we can observe that, more number of houses were present in the range of 1000-2000 sq.ft area and more number of houses have 2 bedrooms. Histogram distribution of price, area and Number of bedrooms attributes are positively skewed distributions. There also exists a strong correlation (0.702) between total price and Area attributes. Hence, sq.ft area increases the price of the house also increases and there also exists a strong correlation among total price and no of bedrooms in the house.
+
+```{r}
+cor(Housing_data$Price,Housing_data$Area,,method = "spearman")
+
+```

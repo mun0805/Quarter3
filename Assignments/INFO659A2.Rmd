@@ -1,0 +1,422 @@
+# NFO 659 Assignment #2 (Manisha Nandawadekar)
+Data Distribution, Clustering and Classification
+
+# Objective:
+
+    This assignment presents to you a real world problem (credit card defaults) that requires deep understanding of the problem itself, the ability to deal with messiness of real data, and creativity to combine your understanding with machine learning skills to solve the problem.
+# Dataset:
+    
+Below is the Kaggle dataset link
+
+https://www.kaggle.com/uciml/default-of-credit-card-clients-dataset
+
+According to the site:
+
+    This dataset contains information on default payments, demographic factors, credit data, history of payment, and bill statements of credit card clients in Taiwan from April 2005 to September 2005.
+
+# R Packages:
+
+Loaded the below packages in the R console
+```{r}
+library("rpart")
+library("rpart.plot")
+library("ggplot2")
+library("e1071")
+```
+
+# Problem
+Build machine-learning models to predict credit card defaults based on demographic or payment status history data.
+
+# A. Data Preparation:
+
+# A.1. Data Loading and Initial Transformation
+      
+    Loading the data and converting the default.payment.next.month feature into a nominal (factor) feature using the below R code.
+
+```{r}
+library(ggplot2)
+cc <- read.csv("UCI_Credit_Card.csv")
+cc$default.payment.next.month <- factor(cc$default.payment.next.month,levels=c(0,1), labels=c("No","Yes"))
+```
+
+Below are the first five rows present in the data
+```{r}
+head(cc,5)
+```
+
+Below is the summary details of data
+```{r}
+summary(cc)
+```
+List the rows of data that are having missing values
+```{r}
+cc[!complete.cases(cc),]
+```
+```{r}
+anyNA(cc)
+```
+
+# Data Description:
+
+    Data consists of 30,000 credit card clients data available and we can also observe that there is no missing values in any data.
+    
+    The average value of the credit card limit balance is 167,484 and the standard deviation value is unusually high and has a maximum value of one million.
+    
+    The majority of customers are either married or single (the other status is much lower).
+    
+    The level of education is primarily at graduate school and university.
+    
+    With a standard deviation of 9.2, the average age is 35.5 years.
+    
+    Since 'not default' means value 0 for default payment and 'default' means value 1, the average of 0.221 means that 22.1 percent of credit card contracts will default next month.
+
+# A.2. Demographic Variables:
+    
+SEX, EDUCATION, MARRIAGE, AGE are the demographic variables in this data.
+    
+Distribution of SEX variable with color code for default.payment.next.month.
+```{r}
+ggplot(cc, aes(x=SEX, fill=default.payment.next.month, color=default.payment.next.month)) + 
+  geom_histogram(binwidth=1, position="stack") +
+  scale_color_manual(values=c("black","black")) +
+  scale_fill_manual(values=c("darkolivegreen4", "red"))
+```
+
+  The distribution of male and female credit card customers is visualized above. Around 60.4% of the customers in the data are female, and the remaining 39.6% are male. The proportion of defaults among men is 24.2% and 20.7% among women.
+
+  There is only a slight differences in amounts of default exists in both male and female so it is difficult to predict the customer is default or not using this SEX variable 
+  
+  
+Distribution of Marriage variable with color code for default.payment.next.month.
+```{r}
+ggplot(cc, aes(x=MARRIAGE, fill=default.payment.next.month, color=default.payment.next.month)) + 
+  geom_histogram(binwidth=1, position="stack") +
+  scale_color_manual(values=c("black","black")) +
+  scale_fill_manual(values=c("darkolivegreen4", "red"))
+```
+
+ Customer distribution into "Married", "Single" and "other" and the corresponding proportions are 53.2 percent, 45.5 percent and 1.3 percent respectively. Married clients are likely to default with 23.5 percent defaults, single clients default with 20.9 percent defaults is marginally less likely to default and the smaller subset  "Other" has a 23.6 percent default ratio.
+
+ There is only a slight differences in amounts of default exists in both male and female so it also difficult to predict the customer is default or not using this Marriage variable
+
+
+# A.3. Payment Status Variables:
+    
+    PAY_0, PAY_2, PAY_3, PAY_4, PAY_5, PAY_6 are the Payment Status Variables in this data.
+    
+
+Distribution of PAY_0 variable with color code for default.payment.next.month.
+```{r}
+ggplot(cc, aes(x=PAY_0, fill=default.payment.next.month, color=default.payment.next.month)) + 
+  geom_histogram(binwidth=1, position="stack") +
+  scale_color_manual(values=c("black","black")) +
+  scale_fill_manual(values=c("darkolivegreen4", "red"))
+```
+
+
+Distribution of PAY_2 variable with color code for default.payment.next.month.
+```{r}
+ggplot(cc, aes(x=PAY_2, fill=default.payment.next.month, color=default.payment.next.month)) + 
+  geom_histogram(binwidth=1, position="stack") +
+  scale_color_manual(values=c("black","black")) +
+  scale_fill_manual(values=c("darkolivegreen4", "red"))
+```
+
+
+Distribution of PAY_3 variable with color code for default.payment.next.month.
+```{r}
+ggplot(cc, aes(x=PAY_3, fill=default.payment.next.month, color=default.payment.next.month)) + 
+  geom_histogram(binwidth=1, position="stack") +
+  scale_color_manual(values=c("black","black")) +
+  scale_fill_manual(values=c("darkolivegreen4", "red"))
+```
+
+ Using the payment status variables PAY_0, PAY_2 and PAY_3 distributions, we can observe that the customers previous payment status and the probability of default has more effect on predicting default.payment.next.month of the credit card rather than demographic variables.
+
+# A.4. Transforming Nominal Variables:
+
+SEX, EDUCATION, MARRIAGE, AGE ,PAY_0, PAY_2, PAY_3, PAY_4, PAY_5 and PAY_6 are Nominal variables:
+        
+Transforming SEX variable into nominal values with proper labels using the factor() function.
+```{r}
+cc$SEX <- factor(cc$SEX,levels=c(1,2), labels=c("Male", "Female")) 
+```
+
+
+```{r}
+View(cc$SEX)
+```
+
+Transforming Education variable into nominal values with proper labels using the factor() function.
+```{r}
+cc$EDUCATION <- factor(cc$EDUCATION,levels=c(1,2,3,4,5,6), labels=c("graduate school", "university", "high school", "others", "unknown", "unknown")) 
+```
+
+
+```{r}
+View(cc$EDUCATION)
+```
+
+
+Transforming MARRIAGE variable into nominal values with proper labels using the factor() function.
+```{r}
+cc$MARRIAGE <- factor(cc$MARRIAGE,levels=c(1,2,3), labels=c("married", "single", "others" )) 
+```
+
+
+```{r}
+View(cc$MARRIAGE)
+```
+
+Transforming PAY_0 variable into nominal values with proper labels using the factor() function.
+```{r}
+cc$PAY_0 <- factor(cc$PAY_0,levels=c(-2,-1,0,1,2,3,4,5,6,7,8), labels=c('-2','-1', '0', '1','2','3','4','5', '6','7','8'))
+```
+
+```{r}
+View(cc$PAY_0)
+```
+
+Transforming PAY_2 variable into nominal values with proper labels using the factor() function.
+```{r}
+cc$PAY_2 <- factor(cc$PAY_2,levels=c(-2,-1,0,1,2,3,4,5,6,7,8), labels=c('-2','-1', '0', '1','2','3','4','5', '6','7','8'))
+```
+
+
+```{r}
+View(cc$PAY_2)
+```
+
+
+Transforming PAY_3 variable into nominal values with proper labels using the factor() function.
+```{r}
+cc$PAY_3 <- factor(cc$PAY_3,levels=c(-2,-1,0,1,2,3,4,5,6,7,8), labels=c('-2','-1', '0', '1','2','3','4','5', '6','7','8'))
+```
+
+
+```{r}
+View(cc$PAY_3)
+```
+
+
+Transforming PAY_4 variable into nominal values with proper labels using the factor() function.
+```{r}
+cc$PAY_4 <- factor(cc$PAY_4,levels=c(-2,-1,0,1,2,3,4,5,6,7,8), labels=c('-2','-1', '0', '1','2','3','4','5', '6','7','8'))
+```
+
+
+```{r}
+View(cc$PAY_4)
+```
+
+Transforming PAY_5 variable into nominal values with proper labels using the factor() function.
+```{r}
+cc$PAY_5 <- factor(cc$PAY_5,levels=c(-2,-1,0,1,2,3,4,5,6,7,8), labels=c('-2','-1', '0', '1','2','3','4','5', '6','7','8'))
+```
+
+
+```{r}
+View(cc$PAY_5)
+```
+
+Transforming PAY_6 variable into nominal values with proper labels using the factor() function.
+```{r}
+cc$PAY_6 <- factor(cc$PAY_6,levels=c(-2,-1,0,1,2,3,4,5,6,7,8), labels=c('-2','-1', '0', '1','2','3','4','5', '6','7','8'))
+```
+
+
+```{r}
+View(cc$PAY_6)
+```
+
+
+# A.5. Selection of Training Data:
+
+5000 rows are randomly sampled from the data to train the model
+```{r}
+train <- cc[sample(nrow(cc), 5000), ] 
+
+```
+
+
+Checking the train data
+```{r}
+nrow(train)
+```
+# A.6. Selection of Testing Data:
+
+2 and 2345 are the two data points or rows that are sampled from data for testing the model
+
+```{r}
+test <- cc[c(1,2345),]
+test
+```
+
+# B. Data Classification:
+
+# B.1. Naive Bayes using Demographic Variables:
+    
+Naive Bayes model using the nominal demographic variables as predictors:
+```{r}
+library(e1071)
+nbDem <- naiveBayes(default.payment.next.month ~ (SEX + EDUCATION + MARRIAGE), train)
+nbDem
+```
+    
+  We can see from above observation that the probability of total number of customer to be default in the data is 21.52%
+
+  The conditional probability of defaults in the data depends on male and female are 45.3% and 54.6%  and we can also we can see that conditional probability of defaults chances are more with graduate and university education 29.2% and 50.9%
+
+  The chances of being defaults will be almost same for married person or single person 46.8% and 51.9 % and data has very less people having marriage status as others
+
+Prediction of test data based on Naive Bayes using Demographic variables:
+```{r}
+predict(nbDem, test[1,])
+```
+
+
+```{r}
+predict(nbDem, test[2,])
+```
+
+  From the above predicted results we can see that for the first test data point is incorrect as the user will default for next month is Yes and predicted results for the second test data point is correct.
+
+  Using demographic variables, we can't accurately predict the defaults for next month as the trained data set has conditional probabilities of being defaults or not slightly equal to these demographic variables (reference A.2). So there is no point in predicting the model using only demographic variables. Since the chances of having a 'No' is 78.48 percent from the training sample, the expected results are fair as we get 'No' for both test cases.
+
+# B.2. Naive Bayes using Payment Status:
+    
+Naive Bayes model using payment status variables as predictors
+    
+
+```{r}
+nbPay <- naiveBayes(default.payment.next.month ~ PAY_0 + PAY_2 + PAY_3, train)
+nbPay
+```
+      
+  We could see from the above observation that the priori probabilities of the total number of customers in the data being default next month is 21.52 percent. The probabilities of 'No' and 'Yes' results considering pay_0, pay_2 and pay_3 variables to train the algorithm matches the results when demographic variables are considered to train the algorithm. So, the findings of both nbPay and nbDem are favorable and clear.
+
+Prediction of test data based on Naive Bayes using payment status:
+```{r}
+predict(nbPay, test[1,])
+```
+
+```{r}
+predict(nbPay, test[2,])
+```
+    
+  The predicted results of both first and second test data points are correct. 
+  
+  The model works as expected and results seems reasonable because prediction based on payment status variables have a larger impact on finding defaults of next month user would be default or not.
+  
+  
+# B.3. Smoothed Naive Bayes using Payment Status:
+    
+considering a Laplace value such as 1.5 to smooth related probability estimates in the Naive Bayes model
+    
+    
+```{r}
+nbPay <- naiveBayes(default.payment.next.month ~ PAY_0 + PAY_2 + PAY_3, train, laplace=1.5)
+nbPay
+
+```
+    
+  From the above observation we can see that the probability of total number of customer to be default in the data is 21.15%.
+  
+  Both With and without Laplace smoothing trained algorithms are producing the same probability results this is because there is no missing values present in our data.
+  
+    
+Prediction of test data based on smoothed Naive Bayes using payment status:
+```{r}
+predict(nbPay, test[1,])
+```
+
+```{r}
+predict(nbPay, test[2,])
+```
+
+  The predicted results of the first and second test data points are accurate and we do not detect any effect of Laplace smoothing because there are no missing values in the data we used to train the model, so applying the Laplace smoothing value has zero impact on the prediction.
+  
+# C. Classification with Decision Tree:
+
+# C.1. Basic Decision Tree:
+Decision tree using three payment status variables as predictors
+```{r}
+library("rpart")
+library("rpart.plot")
+dtPay <- rpart(default.payment.next.month ~ PAY_0 + PAY_2 + PAY_3,
+            method="class",
+            data=train, parms=list(split='information'), 
+            minsplit=20, cp=0.02)
+```
+  
+visualizing the decision tree
+```{r}
+rpart.plot(dtPay, type=4, extra=1)
+```
+Variable Importance:
+```{r}
+dtPay$variable.importance
+```
+Prediction of defaults using decision tree
+```{r}
+predict(dtPay, test[1,])
+```
+```{r}
+predict(nbPay, test[1,])
+```
+
+```{r}
+predict(dtPay, test[2,])
+```
+
+```{r}
+predict(nbPay, test[2,])
+```
+
+   It is very clear from the above graph that the default payment status column is the root node and it has 5000 samples in which 3924 samples are No and 1076 samples are Yes. The root node is always defined based on Information gain . The data split later is based on PAY 0 variable value less than 1 or >= 1 conditions. When pay 0 < 1 then 3767 samples are classified as No and 737 are classified as Yes and it further classifies for pay 0 > = 1 condition based on PAY < 2 or > 2. The splits happens till no further splits are possible and from the importance parameter we can see that out of 3 parameters the PAY_0 variable has more importance than any other parameter Which means it has greater influence on the target variable.
+
+  The expected prediction for first test data point to become default has more chances which is Yes and it is True classification and second test data point to become not default has more chances which is No it is also True classification.
+
+# C.2. Decision Tree with a Different Complexity Parameter:
+    
+Decision tree with a smaller cp
+```{r}
+dtPay <- rpart(default.payment.next.month ~ PAY_0 + PAY_2 + PAY_3,
+            method="class",
+            data=train, parms=list(split='information'), 
+            minsplit=20, cp=0.001)
+```
+
+visualizing the decision tree
+```{r}
+rpart.plot(dtPay, type=4, extra=1)
+```
+
+```{r}
+dtPay$variable.importance
+```
+```{r}
+predict(dtPay, test[1,])
+```
+
+```{r}
+predict(nbPay, test[1,])
+```
+
+```{r}
+predict(dtPay, test[2,])
+```
+
+```{r}
+predict(nbPay, test[2,])
+```
+From the above graph, due to the complexity parameter, we can note that root nodes and decision nodes have been updated. The nodes are split based on the value of complexity that we have defined, i.e. 0.001, which is a lower value than the previous one(0.02). By tuning the hyperparameter, the correct amount of complexity can be specified and here the decisions are further categorized into sections of the granule. Next, it makes a decision based on PAY 0 because it has greater data advantage. Then it decides based on PAY_2 and PAY_3 and splits happens till no further splits are possible and from the importance parameter we can see that out of 3 parameters the PAY_0 variable has more importance Which means it has greater influence on the target variable.
+
+The predicted results of first row test data to become default has more chances which is Yes and it is True classification and second row test data to not become default has more chances which is No it is also True classification.
+
+ 
+# D.Conclusion:
+
+Both the Naive Bayes and Decision Tree classifiers have predicted the correct results for the instances given. Decision tree is useful not only for prediction and classification, but also for finding the behavior of different variables and works well with large data, while the classifier of Naive Bayes works well even though the training data does not include all the possibilities and is less likely to overfit. Since there is no missing data in these data, the model of Naive Bayes is best suited.
+
+By examining the other variables such as PAY_4, PAY_5, PAY_6 and bill amount which has also higher influence on target variable default.payment.next.month. Hence these variables can be included with demographic, Pay_0, Pay_2, Pay_3 variables while training the model which will optimize the model and produces better results. further analysis can be done by building the models using training set with more values and also test set with more than 2 rows.

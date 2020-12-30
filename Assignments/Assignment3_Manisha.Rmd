@@ -1,0 +1,365 @@
+---
+title: "INFO 659 Assignment3 (Manisha Nandawadekar)"
+output: html_notebook
+---
+# A. Understanding variables and relations in data
+
+## A.1. Attributes impact on payment default. 
+
+**Creating a dataframe to display data in table format:**
+```{r}
+text_tbl <- data.frame(
+  Attribute = c("Limit_Bal", "Pay_0, 2, 3, 4, 5, 6 ", "Bill_Amt1, 2, 3, 4, 5, 6","Pay_Amt1, 2, 3, 4, 5, 6"),
+  Data_Type = c("numeric" , "integer","numeric" ,"numeric"),
+  Potential_impact_on_Default_and_reason = c("It is slightly negatively correlated with default, Which suggests that low limit-bal implies that there is a strong risk of default. However, since this correlation value is very small (-0.15) so it has a much less effect on the default variable.","These variables are closely and positively associated with the default variable. Therefore, it has a greater effect.","As their correlation value is almost equal to zero and are negatively correlated, these variables have less influence on the default variable.","These variables also have less impact on default variable as their correlation value is almost equal to zero and are negatively correlated.")
+)
+
+kbl(text_tbl) %>%
+  kable_paper(full_width = T) %>%
+  column_spec(1, bold = T, border_right = T,border_left = T) %>%
+  column_spec(2,border_right = T)%>%
+  column_spec(3,border_right = T)
+```
+
+
+## A.2. Two pairs of attributes that contribute to payment default.
+
+
+**1.**PAY _0 and PAY_2  are the highest correlated variables to default. These two variables are merged into a single column called PAY02, which will have a higher correlation with the default column.
+
+**2.**PAY values of 0,2,3,4,5,6 have a direct effect on default payment. By adding all these PAY values, if this value is positive, we can presume that the individual is a frequent defaulter.
+
+**3.**By counting all the values in Pay Amt from 1,2,3,4,5,6 and if the number of zeros is greater, we can state that the user doesn't pay the bill. This attribute also has a greater effect on default payments.
+
+**4.**Bill AMT of 1,2,3,4,5,6 also has an effect on default payments. By counting all Zero values, and if the number of zeros is greater, we can presume that the user is not defaulter.
+
+**5.**PAY 3 and PAY 4 are slightly correlated variables by default. These two variables are merged into a single column called PAY34 by taking the ratio, which would have a considerable correlation with the default column.
+
+
+# B.	Data preparation and cleansing:
+
+## B.1.Load data and initial data conversion/transformation: 
+
+**1.Loading the CSV file into dataframe called data:**
+```{r}
+data <- read.csv("UCI_Credit_Card.csv")
+head(data,5)
+```
+
+Displays the datatype of the each attribute in the dataframe:
+```{r}
+sapply(data,class)
+```
+
+Displays the summary of the data:
+```{r}
+summary(data)
+```
+
+Omits the missing data:
+```{r}
+data <- na.omit(data)
+dim(data)
+```
+
+Correlation matrix:
+```{r}
+corr <-rcorr(as.matrix(data))
+round(corr$r,2)
+```
+
+correlation table for predictor variables vs target variable default.payment.next.month:
+```{r}
+correlation_table(data = data, target = "default.payment.next.month")
+```
+
+
+```{r}
+unique(data$default.payment.next.month)
+unique(data$EDUCATION)
+unique(data$MARRIAGE)
+unique(data$SEX)
+```
+
+**2.Conversion of Sex,Education and Marriage attributes into nominal(categorical, factor) attributes:**
+```{r}
+data$SEX <- factor(data$SEX, levels = c(2,1), labels = c("Female","Male"))
+data$EDUCATION <- factor(data$EDUCATION, levels = c(1,2,3,4,5,6), 
+                         labels = c("Graduate school","University","High school","Others","Unknown","Unknown"))
+data$MARRIAGE <- factor(data$MARRIAGE, levels = c(1,2,3), labels = c("Married","Single","Others"))
+
+```
+
+**Conversion of default.payment.next.month variable into nominal(categorical, factor) attributes:**
+```{r}
+data$default.payment.next.month <- factor(data$default.payment.next.month, levels = c(0,1), labels = c("NO","Yes"))
+
+levels(data$default.payment.next.month)
+```
+
+
+**3.Function to check the Sex, Education, Marriage, and default.payment.next.month variables are "factor” or not:**
+```{r}
+class(data$SEX)
+class(data$EDUCATION)
+class(data$MARRIAGE)
+class(data$default.payment.next.month)
+```
+
+
+## B.2. Create a filtered dataset with only non-negative amounts.
+
+Number of rows in original dataset without any filter:
+```{r}
+nrow(data)
+```
+
+**1.Creating a filtered dataset with only non-negative amounts in it:**
+```{r}
+filtered_data <- subset(data,BILL_AMT1>=0 & BILL_AMT2>=0 & BILL_AMT3>=0 & BILL_AMT4>=0 & BILL_AMT5>=0 & BILL_AMT6>=0 &
+                     PAY_AMT1>=0 & PAY_AMT2>=0 & PAY_AMT3>=0 & PAY_AMT4>=0 & PAY_AMT5>=0 & PAY_AMT6>=0)
+
+nrow(filtered_data) #Dataset size with filter
+```
+
+**2.View function to double check the filtered data**
+```{r}
+View(filtered_data)
+```
+
+Displays the filtered data attributes names
+```{r}
+names(filtered_data)
+```
+
+
+# C.	Data Transformation and Classification/Modelling 
+
+## C.1: Modeling with default.payment.next.month ~ variables in A.1
+
+I will use Decision Tree as classification model here.
+
+**Selecting 90% of data for training purpose and remaining 10% of data for testing purpose:**
+```{r}
+set.seed(20)
+split = sample.split(filtered_data$default.payment.next.month, SplitRatio = 0.90)
+train = subset(filtered_data, split == TRUE) 
+test = subset(filtered_data, split == FALSE)
+head(test)
+```
+
+
+**Training Decision Tree using the training dataset to predict default.payment.next.month variable using PAY_0,PAY_4 and PAY_5 predictors** 
+```{r}
+
+decision_model <- rpart(default.payment.next.month ~ PAY_0+PAY_4+PAY_5,
+            method="class",
+            data=train, parms=list(split='information'), 
+            minsplit=20, cp=0.01)
+decision_model
+```
+
+Most significant variables in model:
+```{r}
+decision_model$variable.importance
+```
+
+Plotting the recursive Partitioning and Regression Trees from this model
+```{r}
+rpart.plot(decision_model, type=4, extra=1)
+```
+**Model prediction on test data and plotting confusion matrix**
+```{r}
+decision_prediction <- predict(decision_model, test, type = 'class')
+confusionMatrix(decision_prediction,test$default.payment.next.month)
+```
+
+
+## C.2: Data transformation and redo classification: 
+
+```{r}
+age_label <- c(paste(seq(1,100,by=10),seq(10,100,by=10),sep="-"))
+age_label
+```
+
+**Creating new attributes:**
+```{r}
+filtered_data$Age_group <- cut(filtered_data$AGE,breaks = c(seq(1,100,by=10),Inf),labels = age_label)
+filtered_data$PAY <- filtered_data$PAY_0 + filtered_data$PAY_2 + filtered_data$PAY_3 +filtered_data$PAY_4 + filtered_data$PAY_5+ filtered_data$PAY_6
+filtered_data$Good_BIL <- apply(filtered_data[,13:18], 1, function(x) length(which(x==0)))
+filtered_data$Good_AMOUNT <- apply(filtered_data[,19:24], 1, function(x) length(which(x==0)))
+
+```
+
+
+
+```{r}
+ggplot(filtered_data, aes(Age_group))+geom_bar(fill="steelblue")+geom_text(stat='count', aes(label=..count..), vjust=-0.3)
+```
+
+**Selecting 90% of data for training purpose and remaining 10% of data for testing purpose:**
+
+```{r}
+set.seed(20)
+split = sample.split(filtered_data$default.payment.next.month, SplitRatio = 0.90)
+train = subset(filtered_data, split == TRUE) 
+test = subset(filtered_data, split == FALSE)
+head(test)
+```
+
+**Training the decision tree model with new attributes:**
+```{r}
+model2 <- rpart(default.payment.next.month ~ PAY_0+PAY_4+PAY_5+Age_group+PAY+Good_AMOUNT+Good_BIL, # Age_group, PAY, Good_AMOUNT and Good_BIL are the new relations found in A2
+            method="class",
+            data=train, parms=list(split='information'), 
+            minsplit=20, cp=0.01)
+model2
+```
+
+Most significant variables in model:
+```{r}
+model2$variable.importance
+```
+
+Plotting the recursive Partitioning and Regression Trees from this model
+```{r}
+rpart.plot(model2, type=4, extra=1)
+```
+
+**Model prediction on test data and plotting confusion matrix**
+```{r}
+prediction2 <- predict(model2, test, type = 'class')
+confusionMatrix(prediction2,test$default.payment.next.month)
+```
+
+## C.3: Classification model with log transformation data:
+
+Plotting Histograms for each attribute and also for their logarithm of attribute to graphically summarize the difference in the skewness from the data distribution 
+```{r}
+hist(filtered_data$LIMIT_BAL)
+hist(log10(filtered_data$LIMIT_BAL))
+```
+
+```{r}
+hist(filtered_data$PAY_AMT1)
+hist(log(filtered_data$PAY_AMT1))
+```
+
+
+```{r}
+hist(filtered_data$PAY_AMT6)
+hist(log(filtered_data$PAY_AMT6))
+```
+
+We can observe from above histograms that applying logarithm will reduce the skewness for few attributes.
+
+**creating new attributes by applying natural logarithm for highly skewed variables LIMIT_BAL,AGE,PAY_AMT1,PAY_AMT2,PAY_AMT3,PAY_AMT4,PAY_AMT5,PAY_AMT6,Good_BIL and Good_AMOUNT**
+```{r}
+filtered_data$LIMIT_BAL_log <- log10(filtered_data$LIMIT_BAL)
+filtered_data$AGE_log <- log1p(filtered_data$AGE)
+filtered_data$PAY_AMT1_log <- log1p(filtered_data$PAY_AMT1)
+filtered_data$PAY_AMT2_log <- log1p(filtered_data$PAY_AMT2)
+filtered_data$PAY_AMT3_log <- log1p(filtered_data$PAY_AMT3)
+filtered_data$PAY_AMT4_log <- log1p(filtered_data$PAY_AMT4)
+filtered_data$PAY_AMT5_log <- log1p(filtered_data$PAY_AMT5)
+filtered_data$PAY_AMT6_log <- log1p(filtered_data$PAY_AMT6)
+filtered_data$Good_BIL_log <- log1p(filtered_data$Good_BIL)
+filtered_data$Good_AMOUNT_log <- log1p(filtered_data$Good_AMOUNT)
+```
+
+**Dropping the attributes which are no longer needed for your analysis**
+```{r}
+filtered_data <- subset(filtered_data, select = -c(LIMIT_BAL,AGE,PAY_AMT1,PAY_AMT2,PAY_AMT3,PAY_AMT4,PAY_AMT5,PAY_AMT6,Good_BIL,Good_AMOUNT) )
+```
+
+
+**Selecting 90% of data for training purpose and remaining 10% of data for testing purpose**
+```{r}
+set.seed(20)
+split = sample.split(filtered_data$default.payment.next.month, SplitRatio = 0.90)
+train = subset(filtered_data, split == TRUE) 
+test = subset(filtered_data, split == FALSE)
+head(test)
+```
+
+
+**Training Decision Tree using the training data set**
+```{r}
+model3 <- rpart(default.payment.next.month ~ LIMIT_BAL_log+PAY_AMT1_log+PAY_AMT2_log+PAY_AMT3_log+PAY_AMT4_log+PAY_AMT5_log+PAY_AMT6_log+Good_BIL_log+Good_AMOUNT_log,
+            method="class",
+            data=filtered_data, parms=list(split='information'), 
+            minsplit=20, cp=0.003)
+model3
+```
+
+Most significant variables in model:
+```{r}
+model3$variable.importance
+```
+
+**Model prediction on test data and plotting confusion matrix**
+```{r}
+prediction3 <- predict(model3, test, type = 'class')
+confusionMatrix(prediction3,test$default.payment.next.month)
+```
+
+## C.4: Classification model with different parameter value:
+
+**Training the decision tree model with different parameter value:**
+```{r}
+model4 <- rpart(default.payment.next.month ~ LIMIT_BAL_log+PAY_AMT1_log+PAY_AMT2_log+PAY_AMT3_log+PAY_AMT4_log+PAY_AMT5_log+PAY_AMT6_log+Good_BIL_log+Good_AMOUNT_log,
+            method="class",
+            data=filtered_data, parms=list(split='information'), 
+            minsplit=10, cp=0.0015)
+model4
+```
+
+Most significant variables in model:
+```{r}
+model4$variable.importance
+```
+
+**Model prediction on test data and plotting confusion matrix**
+```{r}
+prediction4 <- predict(model4, test, type = 'class')
+confusionMatrix(prediction4,test$default.payment.next.month)
+```
+
+
+# D. Evaluation Results of Different Models: 
+
+Decision Tree	Results:   
+
+```{r}
+text_tbl <- data.frame(
+  Model = c(1,2,3,4),
+  Accuracy = c("81.9%","81.9%","78.3%","78.3%"),
+  Precision = c(0.834,0.834,0.792,0.8),
+  Recall = c(0.956,0.956,0.976,0.959),
+  F_Score = c(0.89,0.89,0.874,0.872),
+  Kappa = c(0.369,0.369,0.133,0.179)
+)
+
+kbl(text_tbl) %>%
+  kable_paper(full_width = T) %>%
+  column_spec(1, bold = T, border_right = T,border_left = T) %>%
+  column_spec(2,border_right = T)%>%
+  column_spec(3,border_right = T)%>%
+  column_spec(4,border_right = T)%>%
+  column_spec(5,border_right = T)%>%
+  column_spec(6,border_right = T)
+```      		
+       
+# E. Interpretation and Conclusion 
+
+**1.** As mentioned in A1 and A2 sections, both Good Amount and Good Bill have an effect on default payment, as it can also be verified in the feature importance parameter in the model4.  Therefore our analysis is correct.
+
+**2.** Yes, data transformation has also helped in the modeling process. It can be noticed that the aggregated value of the PAY also has a major role in modeling. Since it can be seen that the added attribute has valid good information about the defaulter, this parameter has also been given high importance by the model.
+
+**3.** For the classification task, I have chosen decision tree classifier for all the four models. Out of the four models, the accuracy and precision of the first two models had identical values compared to the later models. The third model did not work well compared to the other models. This is due to the importance of the hyperparameter value that we have selected.
+
+**4.** While accuracy is an significant parameter, we can not depend entirely on this metric to review the results of Task D. The Recall and precision metrics also an important aspects to consider here. As far as payment default is concerned, more importance should be given to how precisely our model calculates the defaulter.
+
+**5.** The ultimate outcome winner is the model3. The reasoning is that the "False Negative" rate is lower. As  we are dealing with credit card defaulters in our situation, we are interested in a model which has lower False Negative rate, which implies a higher Recall model as it's okay if the model classifies a non-defaulter as a defaulter, but however we don't want our model to classify a defaulter in non-defaulter group.
+
+Therefore Model3 is the best model in our case.
